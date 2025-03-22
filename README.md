@@ -1,46 +1,60 @@
-# Getting Started with Create React App
+# Party Prep Checklist
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+A collaborative party planning checklist application that allows multiple users to coordinate party preparations in real-time.
 
-## Available Scripts
+## Features
 
-In the project directory, you can run:
+- Interactive checklist with tasks organized by timeframes
+- Real-time collaboration with Firebase
+- Task and subtask support
+- Progress tracking
+- Shareable links for collaborators
+- Responsive design for mobile and desktop
 
-### `npm start`
+## Firebase Setup
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+1. Create a Firebase project at [https://console.firebase.google.com/](https://console.firebase.google.com/)
+2. Add a web app to your Firebase project
+3. Enable Firestore Database
+4. Enable Anonymous Authentication in the Authentication section
+5. Copy your Firebase config values to `.env` file (use `.env.example` as a template)
 
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
+## Local Development
 
-### `npm test`
+1. Clone the repository
+2. Install dependencies:
+   ```
+   npm install
+   ```
+3. Create a `.env` file with your Firebase configuration (see `.env.example`)
+4. Start the development server:
+   ```
+   npm start
+   ```
+5. Open [http://localhost:3000](http://localhost:3000) in your browser
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+## Deployment to Vercel
 
-### `npm run build`
+1. Push your code to GitHub 
+2. Connect your GitHub repository to Vercel
+3. Add the Firebase environment variables in Vercel project settings
+4. Deploy!
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+## How Collaboration Works
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+- Each party checklist has a unique ID that's added to the URL
+- When you share the link with collaborators, they'll see the same checklist
+- All changes sync in real-time across all connected devices
+- Create a new party with the "Create New Party" button
+- Share your party with others using the "Share with Collaborators" button
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+## Technologies Used
 
-### `npm run eject`
+- React
+- TypeScript
+- Firebase (Firestore & Authentication)
+- Vercel for hosting
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
+## License
 
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
-
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
-
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
+MIT

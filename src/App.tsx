@@ -1,5 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './App.css';
+import { db, auth } from './firebase';
+import { 
+  doc, 
+  setDoc, 
+  onSnapshot, 
+  updateDoc,
+  getDoc
+} from 'firebase/firestore';
+import {
+  signInAnonymously,
+  onAuthStateChanged,
+  User
+} from 'firebase/auth';
 
 // Define Task interface
 interface Task {
@@ -19,6 +32,11 @@ interface Section {
 }
 
 const App: React.FC = () => {
+  // User state
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [partyId, setPartyId] = useState<string>('default-party');
+  
   // Initial state with all tasks organized by sections
   const [sections, setSections] = useState<Section[]>([
     {
@@ -88,10 +106,73 @@ const App: React.FC = () => {
     },
   ]);
 
-  // Toggle task completion status
-  const toggleTaskCompletion = (sectionId: string, taskId: string, subTaskId?: string) => {
+  // Sign in anonymously when the app loads
+  useEffect(() => {
+    const signInUser = async () => {
+      try {
+        await signInAnonymously(auth);
+      } catch (error) {
+        console.error("Error signing in anonymously:", error);
+      }
+    };
+
+    signInUser();
+
+    // Listen for auth state changes
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      setIsLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  // Check URL for party ID
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    const partyIdParam = url.searchParams.get('party');
+    
+    if (partyIdParam) {
+      setPartyId(partyIdParam);
+    }
+  }, []);
+
+  // Sync with Firestore when user is authenticated and party ID is set
+  useEffect(() => {
+    if (!user || !partyId) return;
+
+    const partyRef = doc(db, 'parties', partyId);
+    
+    // Check if the party document exists, if not create it
+    const initializeParty = async () => {
+      const docSnap = await getDoc(partyRef);
+      
+      if (!docSnap.exists()) {
+        // Create a new party with the initial sections data
+        await setDoc(partyRef, { sections });
+      }
+    };
+    
+    initializeParty();
+    
+    // Subscribe to real-time updates
+    const unsubscribe = onSnapshot(partyRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.data();
+        if (data.sections) {
+          setSections(data.sections);
+        }
+      }
+    });
+    
+    return () => unsubscribe();
+  }, [user, partyId, sections]);
+
+  // Toggle task completion status and update Firestore
+  const toggleTaskCompletion = async (sectionId: string, taskId: string, subTaskId?: string) => {
+    // First update local state
     setSections(prevSections => {
-      return prevSections.map(section => {
+      const newSections = prevSections.map(section => {
         if (section.id !== sectionId) return section;
         
         return {
@@ -119,6 +200,16 @@ const App: React.FC = () => {
           })
         };
       });
+      
+      // Update Firestore
+      if (user && partyId) {
+        const partyRef = doc(db, 'parties', partyId);
+        updateDoc(partyRef, { sections: newSections }).catch(error => {
+          console.error("Error updating document:", error);
+        });
+      }
+      
+      return newSections;
     });
   };
 
@@ -142,7 +233,35 @@ const App: React.FC = () => {
     return totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
   };
 
+  // Generate a shareable link for the party
+  const generateShareableLink = () => {
+    const baseUrl = window.location.origin;
+    return `${baseUrl}?party=${partyId}`;
+  };
+
+  // Create a new party with a unique ID
+  const createNewParty = () => {
+    const newPartyId = 'party-' + Date.now();
+    setPartyId(newPartyId);
+    
+    // Update URL with the new party ID
+    const url = new URL(window.location.href);
+    url.searchParams.set('party', newPartyId);
+    window.history.pushState({}, '', url);
+  };
+
+  // Copy shareable link to clipboard
+  const copyShareableLink = () => {
+    const link = generateShareableLink();
+    navigator.clipboard.writeText(link);
+    alert('Link copied to clipboard! Share this with your party planners.');
+  };
+
   const progress = calculateProgress();
+
+  if (isLoading) {
+    return <div className="loading">Loading party planner...</div>;
+  }
 
   return (
     <div className="app">
@@ -151,6 +270,15 @@ const App: React.FC = () => {
         <div className="progress-bar-container">
           <div className="progress-bar" style={{ width: `${progress}%` }}></div>
           <span className="progress-text">{progress}% Complete</span>
+        </div>
+        
+        <div className="collaboration-controls">
+          <button onClick={copyShareableLink} className="share-button">
+            Share with Collaborators
+          </button>
+          <button onClick={createNewParty} className="new-party-button">
+            Create New Party
+          </button>
         </div>
       </header>
       
@@ -206,6 +334,9 @@ const App: React.FC = () => {
       
       <footer className="app-footer">
         <p>Have a wonderful party! 🎉</p>
+        <div className="user-info">
+          {user ? <span>Connected as Guest • Party ID: {partyId}</span> : <span>Connecting...</span>}
+        </div>
       </footer>
     </div>
   );
